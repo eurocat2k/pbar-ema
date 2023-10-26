@@ -7,7 +7,12 @@ BIN=pbar
 all: $(BIN)
 
 %: %.c
-	$(CC) $< -o $(BIN).exe $(LDFLAGS)
-
+# Windows:
+#	$(CC) $< -o $(BIN).exe $(LDFLAGS)
+# UNIX:
+	$(CC) $< -o $(BIN) $(LDFLAGS)
 clean:
-	@rm $(BIN).exe
+# Windows:
+#	@rm $(BIN).exe
+# Unix:
+	@rm $(BIN)
