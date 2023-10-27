@@ -4,6 +4,11 @@
 #include <stdbool.h>
 
 const int PROG_BAR_LENGTH = 30;
+//#define KILO (size_t)1024
+#define KILO (size_t)1000
+#define MEGA (1000 * (KILO))
+#define GIGA (1000 * (MEGA))
+#define TERA (1000 * (GIGA))
 
 typedef struct {
   long total_bytes;
@@ -19,7 +24,6 @@ typedef struct {
 } dataentry;
 
 const double PREDICT_WEIGHT = 0.3;
-
 void update_pbar(int p, statusinfo *sinfo);
 double predict_next(double last_prediction, double actual);
 size_t got_data(dataentry *ent, statusinfo *sinfo);
@@ -32,10 +36,10 @@ double predict_next(double last_prediction, double actual) {
   return predict;
 }
 
-#ifndef DEBUG
 void update_pbar(int p, statusinfo *sinfo) {
+#ifndef DEBUG
+	size_t total = sinfo->total_bytes;
 	printf("\r[");
-	int nleft = p;
 	int numch = (PROG_BAR_LENGTH * p) / 100;
 	for (int i = 0; i < PROG_BAR_LENGTH; i++) {
 		if (numch-- > 0) {
@@ -44,12 +48,20 @@ void update_pbar(int p, statusinfo *sinfo) {
 			printf(" ");
 		}
 	}
-	printf("] %3d %% (bytes: %ld)", p, sinfo->total_bytes);
+	if (total < KILO) {
+	  printf("] %3d%% (%4ld %s)", p, total, "bytes");
+	} else if (total >= KILO && total < MEGA) {
+	  printf("] %3d%% (%4ld %s)", p, total / KILO, "Kilobytes");
+	} else if (total >= MEGA && total < GIGA) {
+	  printf("] %3d%% (%4ld %s)", p, total / MEGA, "Megabytes");
+	} else if (total >= GIGA && total < TERA) {
+	  printf("] %3d%% (%4ld %s)", p, total / GIGA, "Gigabytes");
+	} else {
+	  printf("] %3d%% (%4ld %s)", p, total / TERA, "Terabytes");
+	}
 	fflush(stdout);
-}
-#else
-void update_pbar(int p, statusinfo *sinfo) {return;}
 #endif
+}
 
 size_t got_data(dataentry *ent, statusinfo *sinfo) {
     size_t bytes = 0;
@@ -73,9 +85,9 @@ size_t got_data(dataentry *ent, statusinfo *sinfo) {
 
     long percentdone = sinfo->total_bytes * 100 / estimated_total;
 #ifdef DEBUG
-    fprintf(stderr, " [[urls_left: %ld, total: %ld, current: %ld, expected: %ld, guessed: %f, estimated: %ld, progress: %d %%]]\n", urls_left, sinfo->total_bytes, sinfo->current_bytes, estimated_current, guess_next_prediction, estimated_total, percentdone);
+    fprintf(stderr, " [[urls_left: %ld, total: %ld, current: %ld, expected: %ld, guessed: %f, estimated: %ld, progress: %ld %%]]\n", urls_left, sinfo->total_bytes, sinfo->current_bytes, estimated_current, guess_next_prediction, estimated_total, percentdone);
 #endif    
-    usleep(100);
+    //usleep(100);
     update_pbar(percentdone, sinfo);
     return bytes;
 }
@@ -89,15 +101,13 @@ bool get_data_entry(dataentry *ent, statusinfo *sinfo) {
       sinfo->total_bytes += size;
 #ifdef DEBUG
       fprintf(stderr, "entry: {.bytes = %ld }\n", ent->bytes);
-#else
-      //usleep(10000);
 #endif
     }
     return true;
 }
 
 int main() {
-    dataentry data[] = {{.bytes = 21234}, {.bytes = 34324}, {.bytes = 22134}, {.bytes =114435}, {.bytes = 27643}};
+    dataentry data[] = {{.bytes = 21234}, {.bytes = 334324}, {.bytes = 3222134}, {.bytes = 4114435}, {.bytes = 527643}};
     statusinfo sinfo = {0};
     int num_entries = sizeof(data) / sizeof(data[0]);
     sinfo.total_urls = num_entries;
